@@ -11,6 +11,6 @@ repository=https://github.com/jjcabrera20/QboToolbox
 tags=kobo,kobotoolbox,survey,download,gps,forms
 homepage=https://github.com/jjcabrera20/QboToolbox
 category=Plugins
-icon=resources/icons/qbo_toolbox.png
+icon=resources/icons/icon_connect.png
 experimental=False
 deprecated=False
