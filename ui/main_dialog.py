@@ -56,8 +56,78 @@ class MainDock(QDockWidget):
         self.forms_widget.download_requested.connect(self._on_download_requested)
         self.tabs.addTab(self.forms_widget, "Surveys")
 
+        self.tabs.addTab(self._build_about_tab(), "About")
+
         layout.addWidget(self.tabs)
         self.setWidget(container)
+
+    def _build_about_tab(self):
+        import os
+        from qgis.PyQt.QtCore import Qt
+        from qgis.PyQt.QtGui import QPixmap
+        from qgis.PyQt.QtWidgets import QLabel, QVBoxLayout
+
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(10)
+
+        # Icon
+        icon_path = os.path.join(os.path.dirname(__file__), "..", "resources", "icons", "icon_connect.png")
+        icon_lbl = QLabel()
+        pix = QPixmap(icon_path)
+        if not pix.isNull():
+            icon_lbl.setPixmap(pix.scaled(48, 48, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        icon_lbl.setAlignment(Qt.AlignCenter)
+        layout.addWidget(icon_lbl)
+
+        # Title
+        title = QLabel("<b style='font-size:13pt'>QboToolbox</b>")
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+
+        version = QLabel("<span style='color:#888'>Version 1.0.0</span>")
+        version.setAlignment(Qt.AlignCenter)
+        layout.addWidget(version)
+
+        # Description
+        desc = QLabel(
+            "Connects QGIS to <b>KoboToolbox</b> via the v2 API.<br>"
+            "Browse geographic surveys, download submissions as<br>"
+            "vector layers, and edit records directly in the webform."
+        )
+        desc.setAlignment(Qt.AlignCenter)
+        desc.setWordWrap(True)
+        layout.addWidget(desc)
+
+        # Divider
+        div = QLabel()
+        div.setFixedHeight(1)
+        div.setStyleSheet("background:#cccccc; margin:4px 0;")
+        layout.addWidget(div)
+
+        # Author
+        author = QLabel("<b>Author:</b> Jorge J. Cabrera")
+        author.setAlignment(Qt.AlignCenter)
+        layout.addWidget(author)
+
+        linkedin = QLabel(
+            '<a href="https://www.linkedin.com/in/info-management-gis">'
+            "linkedin.com/in/info-management-gis</a>"
+        )
+        linkedin.setOpenExternalLinks(True)
+        linkedin.setAlignment(Qt.AlignCenter)
+        layout.addWidget(linkedin)
+
+        github = QLabel(
+            '<a href="https://github.com/jjcabrera20/QboToolbox">github.com/jjcabrera20/QboToolbox</a>'
+        )
+        github.setOpenExternalLinks(True)
+        github.setAlignment(Qt.AlignCenter)
+        layout.addWidget(github)
+
+        layout.addStretch()
+        return tab
 
     def _wire_internal_signals(self):
         self._assets_ready.connect(self._on_assets_fetched)
@@ -109,10 +179,15 @@ class MainDock(QDockWidget):
         threading.Thread(target=_run, daemon=True).start()
 
     def _on_assets_fetched(self, assets: list):
-        self.forms_widget.set_assets(assets)
-        self.forms_widget.set_status(f"{len(assets)} survey(s) found.")
+        # Only show active deployed surveys (excludes drafts, archived, deleted)
+        active = [
+            a for a in assets
+            if a.get("deployment_status") == "deployed" and a.get("name", "").strip()
+        ]
+        self.forms_widget.set_assets(active)
+        self.forms_widget.set_status(f"{len(active)} survey(s) found.")
         self.tabs.setCurrentIndex(1)
-        self._plugin.set_assets({a["uid"]: a for a in assets})
+        self._plugin.set_assets({a["uid"]: a for a in active})
 
     def _on_fetch_error(self, message: str):
         self.conn_widget.set_status(f"Error loading surveys: {message}", error=True)

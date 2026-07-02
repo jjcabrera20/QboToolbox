@@ -40,7 +40,7 @@ class AboutDialog(QDialog):
 
         name_lbl = QLabel("<b style='font-size:14pt'>QboToolbox</b>")
         version_lbl = QLabel("<span style='color:#666'>Version 1.0.0</span>")
-        author_lbl = QLabel("<span style='color:#666'>By Juan Cabrera</span>")
+        author_lbl = QLabel("<span style='color:#666'>By Jorge J. Cabrera</span>")
 
         title_col.addWidget(name_lbl)
         title_col.addWidget(version_lbl)

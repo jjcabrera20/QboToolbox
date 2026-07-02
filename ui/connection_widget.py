@@ -34,7 +34,7 @@ class ConnectionWidget(QWidget):
         header.setSpacing(10)
 
         icon_label = QLabel()
-        icon_path = os.path.join(_PLUGIN_DIR, "resources", "icons", "qbo_toolbox.png")
+        icon_path = os.path.join(_PLUGIN_DIR, "resources", "icons", "icon_connect.png")
         pix = QPixmap(icon_path)
         if not pix.isNull():
             icon_label.setPixmap(pix.scaled(40, 40, Qt.KeepAspectRatio, Qt.SmoothTransformation))

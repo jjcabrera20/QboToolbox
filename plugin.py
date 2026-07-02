@@ -8,7 +8,7 @@ from qgis.PyQt.QtWidgets import QAction, QMessageBox
 from .core.layer_builder import LayerBuilder
 from .tasks.fetch_submissions_task import FetchSubmissionsTask
 
-ENKETO_CONFIRM_THRESHOLD = 5
+WEBFORM_CONFIRM_THRESHOLD = 5
 
 
 class Plugin:
@@ -27,24 +27,34 @@ class Plugin:
     def initGui(self):
         icons = os.path.join(self.plugin_dir, "resources", "icons")
 
-        self._action_connect = self._make_action(
+        self._action_connect = self._make_toolbar_action(
             os.path.join(icons, "icon_connect.png"),
             "Connect to KoboToolbox",
             self._open_dock,
             enabled=True,
         )
-        self._action_edit = self._make_action(
+        self._action_edit = self._make_toolbar_action(
             os.path.join(icons, "icon_edit.png"),
-            "Edit Feature in Enketo",
+            "Edit Feature in Webform",
             self._edit_feature,
             enabled=False,
         )
-        self._action_refresh = self._make_action(
+        self._action_refresh = self._make_toolbar_action(
             os.path.join(icons, "icon_refresh.png"),
             "Refresh Layer",
             self._refresh_layer,
             enabled=False,
         )
+
+        # About entry in plugin menu (no toolbar icon)
+        self._action_about = QAction(
+            QIcon(os.path.join(icons, "qbo_toolbox.png")),
+            "About QboToolbox",
+            self.iface.mainWindow(),
+        )
+        self._action_about.triggered.connect(self._show_about)
+        self.iface.addPluginToMenu(self.menu, self._action_about)
+        self.actions.append(self._action_about)
 
         self.iface.currentLayerChanged.connect(self._on_layer_changed)
 
@@ -61,7 +71,7 @@ class Plugin:
 
     # ---- Toolbar actions ----
 
-    def _make_action(self, icon_path: str, text: str, callback, enabled: bool) -> QAction:
+    def _make_toolbar_action(self, icon_path: str, text: str, callback, enabled: bool) -> QAction:
         action = QAction(QIcon(icon_path), text, self.iface.mainWindow())
         action.triggered.connect(callback)
         action.setEnabled(enabled)
@@ -80,6 +90,13 @@ class Plugin:
             self.iface.addDockWidget(Qt.RightDockWidgetArea, self._dock)
         self._dock.show()
         self._dock.raise_()
+
+    # ---- About ----
+
+    def _show_about(self):
+        from .ui.about_dialog import AboutDialog
+        dlg = AboutDialog(self.iface.mainWindow())
+        dlg.exec_()
 
     # ---- Called by the dock after login / download ----
 
@@ -110,7 +127,7 @@ class Plugin:
         has_sel = LayerBuilder.is_kobo_layer(layer) and layer.selectedFeatureCount() > 0
         self._action_edit.setEnabled(has_sel)
 
-    # ---- Edit in Enketo ----
+    # ---- Edit in Webform ----
 
     def _edit_feature(self):
         if self._client is None:
@@ -130,10 +147,10 @@ class Plugin:
             QMessageBox.information(self.iface.mainWindow(), "QboToolbox",
                                     "Select one or more features on the map first.")
             return
-        if len(features) > ENKETO_CONFIRM_THRESHOLD:
+        if len(features) > WEBFORM_CONFIRM_THRESHOLD:
             reply = QMessageBox.question(
                 self.iface.mainWindow(), "QboToolbox",
-                f"Open {len(features)} records in Enketo?",
+                f"Open {len(features)} records in the webform?",
                 QMessageBox.Yes | QMessageBox.No,
             )
             if reply != QMessageBox.Yes:
@@ -147,8 +164,8 @@ class Plugin:
             if not kobo_id:
                 continue
             try:
-                enketo_url = self._client.get_enketo_edit_url(uid, int(kobo_id))
-                QDesktopServices.openUrl(QUrl(enketo_url))
+                webform_url = self._client.get_enketo_edit_url(uid, int(kobo_id))
+                QDesktopServices.openUrl(QUrl(webform_url))
                 opened += 1
             except Exception as e:
                 msg = str(e)
@@ -160,14 +177,14 @@ class Plugin:
         if opened:
             self.iface.messageBar().pushMessage(
                 "QboToolbox",
-                f"Opened {opened} edit form(s) in browser.",
+                f"Opened {opened} record(s) in the webform.",
                 level=Qgis.Info,
                 duration=4,
             )
         if locked:
             QMessageBox.information(
                 self.iface.mainWindow(), "QboToolbox",
-                f"Record(s) {', '.join(locked)} are still locked by an open Enketo session.\n"
+                f"Record(s) {', '.join(locked)} are still locked by an open webform session.\n"
                 "Close the web form (or wait ~30 seconds) and try again."
             )
         if errors:
@@ -193,7 +210,6 @@ class Plugin:
                                 "Survey metadata not found. Re-download from the Surveys tab.")
             return
 
-        # find all existing Kobo layers for this uid to replace them
         self._layers_to_replace = [
             lyr for lyr in QgsProject.instance().mapLayers().values()
             if LayerBuilder.get_asset_uid(lyr) == uid
@@ -204,7 +220,7 @@ class Plugin:
         task.error_occurred.connect(lambda msg: QMessageBox.warning(
             self.iface.mainWindow(), "QboToolbox", f"Refresh failed: {msg}"
         ))
-        self._active_task = task  # keep Python reference alive
+        self._active_task = task
         QgsApplication.taskManager().addTask(task)
 
     def _on_refresh_data_ready(self, asset_detail: dict, geo_fields: list, submissions: list):
