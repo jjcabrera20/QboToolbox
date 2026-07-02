@@ -1,5 +1,0 @@
-<RCC>
-  <qresource prefix="/plugins/qbotoolbox">
-    <file>icons/qbo_toolbox.png</file>
-  </qresource>
-</RCC>
