@@ -291,10 +291,16 @@ class MainDock(QDockWidget):
             QgsProject.instance().addMapLayer(layer)
         self.iface.setActiveLayer(layers[0])
 
-        feat_count = sum(l.featureCount() for l in layers)
-        self.forms_widget.set_status(
-            f"{len(layers)} layer(s) added — {feat_count:,} features."
-        )
+        sub_count = len(submissions)
+        if len(layers) == 1:
+            status = f"1 layer added — {layers[0].featureCount():,} features."
+        else:
+            names = ", ".join(l.name().split(" — ")[-1] for l in layers)
+            status = (
+                f"{len(layers)} layers added from {sub_count:,} submissions "
+                f"({names} — one layer per geographic field)."
+            )
+        self.forms_widget.set_status(status)
         self.layers_added.emit(layers, self._client)
 
     def _on_download_error(self, message: str):
