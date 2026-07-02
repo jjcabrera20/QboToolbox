@@ -29,7 +29,7 @@ class AboutDialog(QDialog):
         top.setSpacing(14)
 
         icon_lbl = QLabel()
-        icon_path = os.path.join(_PLUGIN_DIR, "resources", "icons", "qbo_toolbox.png")
+        icon_path = os.path.join(_PLUGIN_DIR, "resources", "icons", "icon_connect.png")
         pix = QPixmap(icon_path)
         if not pix.isNull():
             icon_lbl.setPixmap(pix.scaled(64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation))
