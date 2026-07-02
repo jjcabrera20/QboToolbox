@@ -1,0 +1,16 @@
+[general]
+name=QboToolbox
+qgisMinimumVersion=3.22
+description=Connect to KoboToolbox and download geographic survey data as QGIS layers
+version=1.0.0
+author=Juan Cabrera
+email=JCABRERA@fondobca.org
+about=Download geographic data from KoboToolbox surveys and visualize as Point, Line, or Polygon layers in QGIS. Supports feature selection and opening records in Enketo for editing.
+tracker=https://github.com/jjcabrera20/QboToolbox/issues
+repository=https://github.com/jjcabrera20/QboToolbox
+tags=kobo,kobotoolbox,survey,download,gps,forms
+homepage=https://github.com/jjcabrera20/QboToolbox
+category=Plugins
+icon=resources/icons/qbo_toolbox.png
+experimental=False
+deprecated=False
