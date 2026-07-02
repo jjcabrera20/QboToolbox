@@ -1,8 +1,8 @@
 import os
 
 from qgis.core import Qgis, QgsApplication, QgsProject
-from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtCore import Qt, QUrl
+from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtWidgets import QAction, QMessageBox
 
 from .core.layer_builder import LayerBuilder
@@ -156,45 +156,35 @@ class Plugin:
             if reply != QMessageBox.Yes:
                 return
 
-        from .ui.webform_launcher import launch
+        import urllib.parse
 
-        locked = []
-        errors = []
-        items = []
+        base_url = self._client._base_url.rstrip("/")
+        opened = 0
 
         for feat in features:
             kobo_id = feat.attribute("kobo_id")
             if not kobo_id:
                 continue
-            try:
-                # Verify the submission exists and is not locked (405)
-                self._client.get_enketo_edit_url(uid, int(kobo_id))
-                items.append((uid, kobo_id))
-            except Exception as e:
-                msg = str(e)
-                if "405" in msg:
-                    locked.append(str(kobo_id))
-                else:
-                    errors.append(f"ID {kobo_id}: {msg}")
+            next_path = (
+                f"/api/v2/assets/{uid}/data/{int(kobo_id)}"
+                f"/enketo/edit/?return_url=false"
+            )
+            # Encode the next path so the ? inside is not misread as a
+            # second query-string delimiter by the browser or Django.
+            login_url = (
+                base_url
+                + "/accounts/login/?next="
+                + urllib.parse.quote(next_path, safe="/")
+            )
+            QDesktopServices.openUrl(QUrl(login_url))
+            opened += 1
 
-        if items:
-            launch(items, self._client._base_url)
+        if opened:
             self.iface.messageBar().pushMessage(
                 "QboToolbox",
-                f"Opening {len(items)} webform(s) — click the link shown in your browser.",
+                "Browser opened — if already logged in you will see a link, click it to open the form.",
                 level=Qgis.Info,
-                duration=6,
-            )
-        if locked:
-            QMessageBox.information(
-                self.iface.mainWindow(), "QboToolbox",
-                f"Record(s) {', '.join(locked)} are still locked by an open webform session.\n"
-                "Close the web form (or wait ~30 seconds) and try again."
-            )
-        if errors:
-            QMessageBox.warning(
-                self.iface.mainWindow(), "QboToolbox",
-                "Some records could not be opened:\n" + "\n".join(errors)
+                duration=7,
             )
 
     # ---- Refresh layer ----
