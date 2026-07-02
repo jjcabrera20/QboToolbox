@@ -156,33 +156,39 @@ class Plugin:
             if reply != QMessageBox.Yes:
                 return
 
-        import urllib.parse
+        from .core.api_client import KoboApiError
 
-        base_url = self._client._base_url.rstrip("/")
         opened = 0
+        errors = []
 
         for feat in features:
             kobo_id = feat.attribute("kobo_id")
             if not kobo_id:
                 continue
-            next_path = (
-                f"/api/v2/assets/{uid}/data/{int(kobo_id)}"
-                f"/enketo/edit/?return_url=false"
-            )
-            # Encode the next path so the ? inside is not misread as a
-            # second query-string delimiter by the browser or Django.
-            login_url = (
-                base_url
-                + "/accounts/login/?next="
-                + urllib.parse.quote(next_path, safe="/")
-            )
-            QDesktopServices.openUrl(QUrl(login_url))
-            opened += 1
+            try:
+                url = self._client.get_enketo_edit_url(uid, int(kobo_id))
+                QDesktopServices.openUrl(QUrl(url))
+                opened += 1
+            except KoboApiError as e:
+                msg = str(e)
+                if "405" in msg or "already being edited" in msg.lower():
+                    errors.append(
+                        f"Record {kobo_id} is locked (being edited). "
+                        "Wait ~30 seconds and try again."
+                    )
+                else:
+                    errors.append(f"Record {kobo_id}: {msg}")
 
+        if errors:
+            QMessageBox.warning(
+                self.iface.mainWindow(),
+                "QboToolbox — Webform",
+                "\n".join(errors),
+            )
         if opened:
             self.iface.messageBar().pushMessage(
                 "QboToolbox",
-                "Browser opened — if already logged in you will see a link, click it to open the form.",
+                f"Webform opened for {opened} record(s). Submit the form to save changes.",
                 level=Qgis.Info,
                 duration=7,
             )

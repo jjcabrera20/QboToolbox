@@ -70,8 +70,12 @@ except (ImportError, AttributeError):
 ### Enketo / Webform editing
 - Call `GET /api/v2/assets/{uid}/data/{id}/enketo/edit/?return_url=false` with API token.
 - Response: `{"url": "https://ee.kobotoolbox.org/edit/{token}?instance_id=...&return_url=false"}`.
-- Open the returned URL directly via `QDesktopServices.openUrl()` — the URL contains its own session token and works without browser auth.
-- HTTP 405 = record locked by active Enketo session; wait ~30 seconds and retry.
+- Open the returned `ee.kobotoolbox.org` URL directly via `QDesktopServices.openUrl()`.
+  The URL contains a self-contained Enketo token; no browser login is required.
+- HTTP 405 "Record is already being edited" = Enketo locked the record during a prior session.
+  Wait ~30 seconds for the lock to expire, then retry.
+- Do NOT open the raw `/api/v2/.../enketo/edit/` URL in the browser — it shows JSON, not the form.
+- Do NOT open a login-redirect URL — the Enketo token from the API already carries edit permissions.
 
 ### Survey filtering
 - API returns all assets including drafts, archived, and soft-deleted.
@@ -104,7 +108,7 @@ Pagination: loop on the `next` field in responses until `null`.
 | QgsVectorLayer downcast to QObject via pyqtSignal | QGIS objects created off main thread lose their type | Build layers in main-thread signal handler, pass raw data through signals |
 | QgsTask GC before signals fire | Python has no reference to task | Store `self._active_task = task` |
 | Stale `.pyc` after signature changes | QGIS bytecode cache | Delete all `__pycache__/` dirs; `.gitignore` now excludes them |
-| HTTP 405 on Enketo re-open | KoboToolbox locks record during active session | Show message; user must close form or wait ~30s |
+| HTTP 405 on Enketo re-open | KoboToolbox locks record during active Enketo session | Plugin shows friendly message; user waits ~30s and retries |
 
 ---
 
