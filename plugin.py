@@ -160,14 +160,16 @@ class Plugin:
 
         locked = []
         errors = []
-        enketo_urls = []
+        items = []
 
         for feat in features:
             kobo_id = feat.attribute("kobo_id")
             if not kobo_id:
                 continue
             try:
-                enketo_urls.append(self._client.get_enketo_edit_url(uid, int(kobo_id)))
+                # Verify the submission exists and is not locked (405)
+                self._client.get_enketo_edit_url(uid, int(kobo_id))
+                items.append((uid, kobo_id))
             except Exception as e:
                 msg = str(e)
                 if "405" in msg:
@@ -175,13 +177,13 @@ class Plugin:
                 else:
                     errors.append(f"ID {kobo_id}: {msg}")
 
-        if enketo_urls:
-            launch(enketo_urls, self._client._base_url)
+        if items:
+            launch(items, self._client._base_url)
             self.iface.messageBar().pushMessage(
                 "QboToolbox",
-                f"Opening {len(enketo_urls)} webform(s) in your browser.",
+                f"Opening {len(items)} webform(s) — click the link shown in your browser.",
                 level=Qgis.Info,
-                duration=4,
+                duration=6,
             )
         if locked:
             QMessageBox.information(
