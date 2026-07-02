@@ -1,8 +1,8 @@
 import os
 
 from qgis.core import Qgis, QgsApplication, QgsProject
-from qgis.PyQt.QtCore import Qt, QUrl
-from qgis.PyQt.QtGui import QDesktopServices, QIcon
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMessageBox
 
 from .core.layer_builder import LayerBuilder
@@ -156,17 +156,18 @@ class Plugin:
             if reply != QMessageBox.Yes:
                 return
 
+        from .ui.webform_launcher import launch
+
         locked = []
         errors = []
-        opened = 0
+        enketo_urls = []
+
         for feat in features:
             kobo_id = feat.attribute("kobo_id")
             if not kobo_id:
                 continue
             try:
-                webform_url = self._client.get_enketo_edit_url(uid, int(kobo_id))
-                QDesktopServices.openUrl(QUrl(webform_url))
-                opened += 1
+                enketo_urls.append(self._client.get_enketo_edit_url(uid, int(kobo_id)))
             except Exception as e:
                 msg = str(e)
                 if "405" in msg:
@@ -174,10 +175,11 @@ class Plugin:
                 else:
                     errors.append(f"ID {kobo_id}: {msg}")
 
-        if opened:
+        if enketo_urls:
+            launch(enketo_urls, self._client._base_url)
             self.iface.messageBar().pushMessage(
                 "QboToolbox",
-                f"Opened {opened} record(s) in the webform.",
+                f"Opening {len(enketo_urls)} webform(s) in your browser.",
                 level=Qgis.Info,
                 duration=4,
             )
