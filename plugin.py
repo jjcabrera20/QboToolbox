@@ -48,7 +48,6 @@ class Plugin:
 
         # About entry in plugin menu (no toolbar icon)
         self._action_about = QAction(
-            QIcon(os.path.join(icons, "qbo_toolbox.png")),
             "About QboToolbox",
             self.iface.mainWindow(),
         )
